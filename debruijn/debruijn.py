@@ -34,7 +34,7 @@ from networkx import (
 random.seed(9001)
 # from random import randint
 
-from typing import Iterator, Dict, List
+from typing import Iterator, Dict, List, Tuple
 
 matplotlib.use("Agg")
 
@@ -102,11 +102,8 @@ def read_fastq(fastq_file: Path) -> Iterator[str]:
     :return: A generator object that iterate the read sequences.
     """
     with open(fastq_file, "r", encoding="utf-8") as f:
-        while True:
-            next(f)
-            yield next(f).strip()
-            next(f)
-            next(f)
+        for _, sequence, _, _ in zip(f, f, f, f):
+            yield sequence.strip()
 
 
 def cut_kmer(read: str, kmer_size: int) -> Iterator[str]:
@@ -380,7 +377,7 @@ def get_sink_nodes(graph: DiGraph) -> List[str]:
 
 def get_contigs(
     graph: DiGraph, starting_nodes: List[str], ending_nodes: List[str]
-) -> List:
+) -> List[Tuple[str, int]]:
     """Extract the contigs from the graph
 
     :param graph: (nx.DiGraph) A directed graph object
@@ -403,10 +400,10 @@ def get_contigs(
 def save_contigs(contigs_list: List[str], output_file: Path) -> None:
     """Write all contigs in fasta format
 
-    :param contig_list: (list) List of [contiguous sequence and their length]
+    :param contigs_list: (list) List of [contiguous sequence and their length]
     :param output_file: (Path) Path to the output file
     """
-    with open(output_file, "w") as f:
+    with open(output_file, "w", encoding="utf-8") as f:
         for i, (contig, length) in enumerate(contigs_list):
             f.write(f">contig_{i} len={length}\n")
             f.write(textwrap.fill(contig, width=80) + "\n")
