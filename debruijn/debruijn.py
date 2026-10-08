@@ -190,7 +190,7 @@ def select_best_path(
 
     :param graph: (nx.DiGraph) A directed graph object
     :param path_list: (list) A list of path
-    :param path_length_list: (list) A list of length of each path
+    :param path_length: (list) A list of length of each path
     :param weight_avg_list: (list) A list of average weight of each path
     :param delete_entry_node: (boolean) True->We remove the first node of a path
     :param delete_sink_node: (boolean) True->We remove the last node of a path
@@ -264,28 +264,37 @@ def simplify_bubbles(graph: DiGraph) -> DiGraph:
     :param graph: (nx.DiGraph) A directed graph object
     :return: (nx.DiGraph) A directed graph object
     """
-    while True:
-        found = False
-        nodes = list(graph.nodes())
-        for a in nodes:
-            if a not in graph:
-                continue
-            if graph.out_degree(a) <= 1:
-                continue
-            for b in nodes:
-                if a == b or b not in graph:
-                    continue
-                if not has_path(graph, a, b):
-                    continue
-                paths = list(all_simple_paths(graph, a, b))
-                if len(paths) >= 2:
-                    graph = solve_bubble(graph, a, b)
-                    found = True
+    bubble = False
+    nodes = list(graph.nodes())
+
+    for node in nodes:
+        if node not in graph:
+            continue
+
+        predecessors = list(graph.predecessors(node))
+
+        if len(predecessors) > 1:
+            for i in range(len(predecessors)):
+                for j in range(i + 1, len(predecessors)):
+                    ancestor = nx.lowest_common_ancestor(
+                        graph, predecessors[i], predecessors[j]
+                    )
+
+                    if ancestor is not None:
+                        bubble = True
+                        break
+
+                if bubble:
                     break
-            if found:
-                break
-        if not found:
+
+        if bubble:
             break
+
+    if bubble:
+        graph = simplify_bubbles(
+            solve_bubble(graph, ancestor, node)
+        )
+
     return graph
 
 
@@ -298,7 +307,7 @@ def solve_entry_tips(graph: DiGraph, starting_nodes: List[str]) -> DiGraph:
     """
     while True:
         found = False
-        current_starts = get_starting_nodes(graph)
+        current_starts = [s for s in starting_nodes if s in graph]
         for n in list(graph.nodes()):
             if graph.in_degree(n) <= 1:
                 continue
@@ -332,7 +341,7 @@ def solve_out_tips(graph: DiGraph, ending_nodes: List[str]) -> DiGraph:
     """
     while True:
         found = False
-        current_ends = get_sink_nodes(graph)
+        current_ends = [e for e in ending_nodes if e in graph]
         for n in list(graph.nodes()):
             if graph.out_degree(n) <= 1:
                 continue
